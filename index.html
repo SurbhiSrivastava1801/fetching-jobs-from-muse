@@ -301,26 +301,42 @@
             showLoading();
             hideError();
             
-            // Use a working CORS proxy to get real data from The Muse API
-            const apiKey = '2e0be6ef1ae62b88638d4275e2f39ec4c8ecdbd16c42809d11e49486beea95aa';
-            const baseUrl = 'https://www.themuse.com/api/public/jobs';
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const apiUrl = `${proxyUrl}${encodeURIComponent(baseUrl + '?' + params.toString())}`;
+            // Use a working public API for job data
+            const apiUrl = 'https://jobs.github.com/positions.json';
+            const githubParams = new URLSearchParams();
             
-            fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Muse-Api-Key': apiKey
-                }
-            })
+            // Map our parameters to GitHub Jobs API
+            if (document.getElementById('company').value) {
+                githubParams.append('company', document.getElementById('company').value);
+            }
+            if (document.getElementById('role').value) {
+                githubParams.append('description', document.getElementById('role').value);
+            }
+            if (document.getElementById('country').value) {
+                githubParams.append('location', document.getElementById('country').value);
+            }
+            
+            const githubApiUrl = `${apiUrl}?${githubParams.toString()}`;
+            
+            fetch(githubApiUrl)
                 .then(response => response.json())
                 .then(data => {
                     hideLoading();
-                    if (data && data.results && data.results.length > 0) {
-                        displayDataCounter(data.results.length, data.page_count || 0, currentPage);
-                        displayJobs(data.results);
-                        displayPagination(data.page_count || 0, currentPage);
+                    if (data && data.length > 0) {
+                        // Convert GitHub Jobs format to our format
+                        const jobs = data.map(job => ({
+                            name: job.title,
+                            company: { name: job.company },
+                            locations: [{ name: job.location }],
+                            type: job.type || 'Full-time',
+                            levels: [{ name: 'Not specified' }],
+                            refs: { landing_page: job.url },
+                            publication_date: job.created_at
+                        }));
+                        
+                        displayDataCounter(jobs.length, jobs.length, currentPage);
+                        displayJobs(jobs);
+                        displayPagination(jobs.length, currentPage);
                     } else {
                         showError('No jobs found. Try different search criteria.');
                     }
