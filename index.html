@@ -301,49 +301,65 @@
             showLoading();
             hideError();
             
-            // Use a simple fetch with mode: 'no-cors' for basic functionality
-            const apiKey = '2e0be6ef1ae62b88638d4275e2f39ec4c8ecdbd16c42809d11e49486beea95aa';
-            const baseUrl = 'https://www.themuse.com/api/public/jobs';
-            const apiUrl = `${baseUrl}?${params.toString()}`;
+            // Try real API first, then fallback to sample data
+            const backendUrl = 'https://terratern-job-api.onrender.com/api/jobs';
+            const apiUrl = `${backendUrl}?${params.toString()}`;
             
-            // For now, let's show some sample data to demonstrate the UI works
-            // In a real deployment, you would need a proper backend service
-            setTimeout(() => {
-                hideLoading();
-                const sampleJobs = [
-                    {
-                        name: "Software Engineer",
-                        company: { name: "Tech Company" },
-                        locations: [{ name: "San Francisco, CA" }],
-                        type: "Full-time",
-                        levels: [{ name: "Mid-level" }],
-                        refs: { landing_page: "https://example.com/apply" },
-                        publication_date: "2024-01-15"
-                    },
-                    {
-                        name: "Data Scientist",
-                        company: { name: "Data Corp" },
-                        locations: [{ name: "Remote" }],
-                        type: "Full-time",
-                        levels: [{ name: "Senior" }],
-                        refs: { landing_page: "https://example.com/apply" },
-                        publication_date: "2024-01-14"
-                    },
-                    {
-                        name: "Product Manager",
-                        company: { name: "Product Inc" },
-                        locations: [{ name: "New York, NY" }],
-                        type: "Full-time",
-                        levels: [{ name: "Senior" }],
-                        refs: { landing_page: "https://example.com/apply" },
-                        publication_date: "2024-01-13"
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.success && data.jobs) {
+                        displayDataCounter(data.jobs.length, data.total_count || 0, currentPage);
+                        displayJobs(data.jobs);
+                        displayPagination(data.total_count || 0, currentPage);
+                    } else {
+                        showError(data.error || 'No jobs found');
                     }
-                ];
-                
-                displayDataCounter(sampleJobs.length, 100, currentPage);
-                displayJobs(sampleJobs);
-                displayPagination(100, currentPage);
-            }, 1000);
+                })
+                .catch(error => {
+                    console.log('Real API failed, showing sample data...', error);
+                    // Fallback to sample data
+                    hideLoading();
+                    const sampleJobs = [
+                        {
+                            name: "Software Engineer",
+                            company: { name: "Tech Company" },
+                            locations: [{ name: "San Francisco, CA" }],
+                            type: "Full-time",
+                            levels: [{ name: "Mid-level" }],
+                            refs: { landing_page: "https://example.com/apply" },
+                            publication_date: "2024-01-15"
+                        },
+                        {
+                            name: "Data Scientist",
+                            company: { name: "Data Corp" },
+                            locations: [{ name: "Remote" }],
+                            type: "Full-time",
+                            levels: [{ name: "Senior" }],
+                            refs: { landing_page: "https://example.com/apply" },
+                            publication_date: "2024-01-14"
+                        },
+                        {
+                            name: "Product Manager",
+                            company: { name: "Product Inc" },
+                            locations: [{ name: "New York, NY" }],
+                            type: "Full-time",
+                            levels: [{ name: "Senior" }],
+                            refs: { landing_page: "https://example.com/apply" },
+                            publication_date: "2024-01-13"
+                        }
+                    ];
+                    
+                    displayDataCounter(sampleJobs.length, 100, currentPage);
+                    displayJobs(sampleJobs);
+                    displayPagination(100, currentPage);
+                });
         }
         
         function displayJobs(jobs) {
