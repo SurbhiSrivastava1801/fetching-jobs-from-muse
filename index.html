@@ -302,7 +302,7 @@
             hideError();
             
             // Try real API first, then fallback to sample data
-            const backendUrl = 'https://terratern-job-api.onrender.com/api/jobs';
+            const backendUrl = 'https://fetching-jobs-from-muse.vercel.app/api';
             const apiUrl = `${backendUrl}?${params.toString()}`;
             
             fetch(apiUrl, {
