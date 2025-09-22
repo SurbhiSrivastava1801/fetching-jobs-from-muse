@@ -301,11 +301,14 @@
             showLoading();
             hideError();
             
-            // Make API request directly to The Muse API
+            // Try direct API call first, then fallback to proxy
             const apiKey = '2e0be6ef1ae62b88638d4275e2f39ec4c8ecdbd16c42809d11e49486beea95aa';
-            const apiUrl = `https://www.themuse.com/api/public/jobs?${params.toString()}`;
+            const baseUrl = 'https://www.themuse.com/api/public/jobs';
+            const apiUrl = `${baseUrl}?${params.toString()}`;
             
+            // Try direct call first
             fetch(apiUrl, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Muse-Api-Key': apiKey
@@ -323,8 +326,39 @@
                     }
                 })
                 .catch(error => {
+                    console.log('Direct API call failed, trying proxy...', error);
+                    // Fallback to proxy
+                    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=';
+                    const proxyApiUrl = `${proxyUrl}${encodeURIComponent(apiUrl)}`;
+                    
+                    return fetch(proxyApiUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Muse-Api-Key': apiKey
+                        }
+                    });
+                })
+                .then(response => {
+                    if (response && response.json) {
+                        return response.json();
+                    }
+                    throw new Error('Invalid response');
+                })
+                .then(data => {
                     hideLoading();
-                    showError('Network error: ' + error.message);
+                    if (data && data.results) {
+                        displayDataCounter(data.results.length, data.page_count || 0, currentPage);
+                        displayJobs(data.results);
+                        displayPagination(data.page_count || 0, currentPage);
+                    } else {
+                        showError('No jobs found or API error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('All API attempts failed:', error);
+                    showError('Unable to fetch jobs. Please try again later.');
                 });
         }
         
